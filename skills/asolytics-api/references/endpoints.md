@@ -3,7 +3,7 @@
 - Source docs: `https://app.asolytics.pro/api/public-api/documentation`
 - Source OpenAPI: `https://app.asolytics.pro/api/public-api/docs?public-api-docs.json`
 - Generated from spec version: `1.0.0-alpha`
-- Generated at: `2026-06-12T15:44:35.307158+00:00`
+- Generated at: `2026-06-18T18:24:01.072654+00:00`
 
 ## Authentication
 
@@ -63,6 +63,16 @@
 `sort_order` - in `query` - string - enum: asc, desc
 `filters[position][from]` - in `query` - integer
 `filters[position][to]` - in `query` - integer
+
+### `GET /public-api/v1/applications/ranking/latest-by-keywords`
+
+- Summary: Latest ranking position per keyword
+- Notes: Returns the app's **latest known** ranking position for each of the requested keywords in the given store/country. Because keywords are parsed on independent schedules, each keyword carries its own `date` — they will not always share the same parse day. Keywords the app does not currently rank for are omitted from the response. The store (Google Play / App Store) is inferred from the `origin_id`. **Costs:** 1 token per 30 requested keywords, minimum 5 per call (billed on the request, not the number of rows returned).
+- Parameters:
+
+`origin_id` - in `query` - string - required
+`country_code` - in `query` - string - required
+`keywords[]` - in `query` - array<string> - required - maxItems=1000
 
 ### `GET /public-api/v1/applications/revenue`
 
@@ -140,7 +150,7 @@
 - Parameters:
 
 `project_id` - in `query` - integer - required
-`filters[competitor_state][]` - in `query` - array<string>
+`filters[competitor_state][]` - in `query` - array<string> - maxItems=50
 
 ### `POST /public-api/v1/competitors/mark`
 
@@ -176,7 +186,7 @@
 `keywords[]` - in `query` - array<string> - required - maxItems=250
 `store` - in `query` - string - required - enum: APP_STORE, GOOGLE_PLAY
 `country_code` - in `query` - string - required
-`metrics[]` - in `query` - array<string> - required
+`metrics[]` - in `query` - array<string> - required - maxItems=50
 
 ### `GET /public-api/v1/keywords/popularity`
 
@@ -202,20 +212,6 @@
 `date_from` - in `query` - string - required
 `date_to` - in `query` - string - required
 
-### `POST /public-api/v1/keywords/ranking/track`
-
-- Summary: Track keyword rankings
-- Notes: Runs an on-demand keyword-ranking scan for a (store, country) and returns each keyword's top positions with the apps holding them. Use this when you need fresh ranking data *now* for keywords you don't already have tracked. Without `response_conf` the call blocks on the scan and the response carries the result; with `response_conf.url` the task is queued and the result is later POSTed to that URL (the immediate response then only carries task info). Up to 500 keywords per request. Keywords already in your tracked-keyword quota are billed as free; the remainder are **paid keywords**. **Costs:** 5 tokens per paid keyword, minimum 5 per call.
-
-- Request body:
-
-- Content-Type: `application/json`
-- `store` required: string (APP_STORE, GOOGLE_PLAY)
-- `country_code` required: string — Sourced from `/v1/common-catalogs/countries`.
-- `keywords` required: array<string>
-- `custom_data`: object — Arbitrary key/value data echoed back in the task info.
-- `response_conf`: object — When present, the task is processed asynchronously and the result is POSTed to `url`.
-
 ## Live Search
 
 ### `GET /public-api/v1/live-search`
@@ -231,6 +227,14 @@
 
 ## Projects
 
+### `GET /public-api/v1/projects/countries-keywords-counts`
+
+- Summary: Get per-country keyword counters
+- Notes: Returns, for every store country of the project, the tracked / recommended / ranking keyword counters together with their day-over-day `dynamic`. The result is keyed by 2-letter country code. **Note:** these counters are pre-aggregated and reflect the **previous day's** snapshot, so they may lag the real data by up to a day. For exact, up-to-the-moment values use the list endpoints directly (e.g. `/v1/tracking/keywords`, `/v1/recommended-keywords`, `/v1/applications/ranking`). **Costs:** 20 tokens per call.
+- Parameters:
+
+`project_id` - in `query` - integer - required
+
 ### `GET /public-api/v1/projects/list`
 
 - Summary: List user projects
@@ -241,13 +245,15 @@
 ### `GET /public-api/v1/recommended-keywords`
 
 - Summary: List recommended keywords
-- Notes: Returns the keywords we recommend you track for a project in the given country, surfaced from the project's app metadata, competitors' metadata, store suggestions, current rankings and related keywords. Each entry carries the phrase, the `sources` that proposed it and its current `state` (`recommended` — fresh suggestion, `tracked` — already in your tracking set, `declined` — you previously dismissed it via `/decline`). Filter by state or by source(s) to narrow the working set. **Costs:** `max(10, ceil(returned / 100))` tokens — minimum 10 per call, then 1 extra token for every started bucket of 100 returned keywords.
+- Notes: Returns the keywords we recommend you track for a project in the given country, surfaced from the project's app metadata, competitors' metadata, store suggestions, current rankings and related keywords. Each entry carries the phrase, the `sources` that proposed it and its current `state` (`recommended` — fresh suggestion, `tracked` — already in your tracking set, `declined` — you previously dismissed it via `/decline`). Filter by state or by source(s) to narrow the working set. The result is paginated — `pagination.total` reflects the filtered universe. **Costs:** `max(10, ceil(returned / 100))` tokens — minimum 10 per call, then 1 extra token for every started bucket of 100 keywords returned on the page.
 - Parameters:
 
 `project_id` - in `query` - integer - required
 `country_code` - in `query` - string - required
-`filters[recommended_keyword_state][]` - in `query` - array<string>
-`filters[sources][]` - in `query` - array<string>
+`page` - in `query` - integer
+`per_page` - in `query` - integer
+`filters[recommended_keyword_state][]` - in `query` - array<string> - maxItems=50
+`filters[sources][]` - in `query` - array<string> - maxItems=50
 
 ### `POST /public-api/v1/recommended-keywords/decline`
 
@@ -288,6 +294,13 @@
 `device` - in `query` - string - required - enum: IPHONE, IPAD, MOBILE
 `date_from` - in `query` - string - required
 `date_to` - in `query` - string - required
+
+## Subscription
+
+### `GET /public-api/v1/subscription/limits`
+
+- Summary: Get subscription limits
+- Notes: Returns the plan limits of the authenticated user's current subscription — `max_keywords`, `max_apps`, `max_archived_apps` and `max_public_api_tokens` — each as a `total` (plan allowance) / `used` (currently consumed) pair. Team members see their team owner's plan. **Costs:** 1 token per call.
 
 ## Tracking Folders
 

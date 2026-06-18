@@ -1,8 +1,8 @@
 {
   "name": "asolytics-api",
   "displayName": "Asolytics API — App Store Optimization (ASO)",
-  "description": "Use the Asolytics Public API for App Store Optimization (ASO) research and automation: app metadata, availability, versions, installs and revenue estimates, rankings, keyword metrics, live search, recommended keywords, keyword tracking, competitors, projects, balance, and store charts.",
-  "version": "1.0.1",
+  "description": "Use the Asolytics Public API for App Store Optimization (ASO) research and automation: app metadata, availability, versions, installs and revenue estimates, rankings, keyword metrics, live search, recommended keywords, keyword tracking, competitors, projects, per-country keyword counts, balance, subscription limits, and store charts.",
+  "version": "1.1.0",
   "author": {
     "name": "Asolytics",
     "url": "https://asolytics.pro"

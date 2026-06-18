@@ -42,6 +42,7 @@ curl -sS \
 - Installs history
 - Revenue history
 - Ranking history
+- Latest ranking position per keyword (`applications/ranking/latest-by-keywords`)
 
 ### Common Catalogs
 
@@ -60,7 +61,7 @@ Use these first when the user does not already know valid store, locale, country
 - Latest metrics
 - Live search top 50
 - Ranking track jobs
-- Recommended keywords
+- Recommended keywords (paginated; filter by state and source)
 - Decline and undecline actions
 
 ### Tracking
@@ -75,10 +76,15 @@ Use these first when the user does not already know valid store, locale, country
 - Mark competitor
 - Unmark competitor
 
+### Subscription
+
+- Plan limits — `total` vs `used` for keywords, apps, archived apps, and public API tokens (`subscription/limits`)
+
 ### Other
 
 - Balance
 - Projects list
+- Per-country keyword counters (`projects/countries-keywords-counts`)
 - Store charts
 
 ## Practical Workflow
@@ -121,4 +127,24 @@ curl -sS \
   -H "Content-Type: application/json" \
   -X POST "https://app.asolytics.pro/public-api/v1/tracking/folders" \
   -d '{"project_id":123,"name":"Core Keywords","description":"Tier 1 terms"}'
+```
+
+### Latest position per keyword
+
+```bash
+curl -sS \
+  -H "X-PUBLIC-API-TOKEN: $ASOLYTICS_PUBLIC_API_TOKEN" \
+  --get "https://app.asolytics.pro/public-api/v1/applications/ranking/latest-by-keywords" \
+  --data-urlencode "origin_id=1234567890" \
+  --data-urlencode "country_code=US" \
+  --data-urlencode "keywords[]=fitness app" \
+  --data-urlencode "keywords[]=workout tracker"
+```
+
+### Plan limits (total vs used)
+
+```bash
+curl -sS \
+  -H "X-PUBLIC-API-TOKEN: $ASOLYTICS_PUBLIC_API_TOKEN" \
+  "https://app.asolytics.pro/public-api/v1/subscription/limits"
 ```

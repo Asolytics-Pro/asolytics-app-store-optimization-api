@@ -13,14 +13,14 @@ This is mainly an **ASO research & intelligence API** — pull keyword and app d
 | --- | --- |
 | **Keyword metrics** | Popularity (search volume), results count, and other metrics for any keyword — plus **popularity history** over time and an app's **ranking history** for a keyword. |
 | **Live search results** | The real **top-50 search results** for any keyword, country, and store — fetched live, right now. |
-| **Keyword ideas** | Recommended keywords Asolytics suggests for an app. |
+| **Keyword ideas** | Recommended keywords Asolytics suggests for a project — filterable by state and source. |
 | **App metadata** | Current store listing for any app — title, subtitle, description, screenshots & media, version history, and the countries it's available in. |
 | **Installs & revenue estimates** | Monthly **estimated installs** and **revenue**, per app and per country. |
-| **Rankings & store charts** | An app's category and keyword **ranking history**, plus full **top-500 store charts** by country, category, and device. |
+| **Rankings & store charts** | An app's category and keyword **ranking history** (or the **latest position per keyword** in one call), plus full **top-500 store charts** by country, category, and device. |
 | **Competitors** | The competitor set for any app. |
 | **Lookups** | Reference data to build valid queries: countries, locales, devices, categories, and clusters. |
 
-It can also **manage your own Asolytics workspace** in one place — your projects, tracked keywords & folders, competitor marks, and your remaining API **token balance** (the API is metered).
+It can also **manage your own Asolytics workspace** in one place — your projects (including **per-country keyword counts**), tracked keywords & folders, competitor marks, your **plan limits** (`total` vs `used`), and your remaining API **token balance** (the API is metered).
 
 Full endpoint-by-endpoint reference: [`skills/asolytics-api/references/endpoints.md`](skills/asolytics-api/references/endpoints.md).
 

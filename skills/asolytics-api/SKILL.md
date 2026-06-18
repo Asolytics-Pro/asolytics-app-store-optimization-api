@@ -1,7 +1,7 @@
 ---
 name: asolytics-api
-version: 1.0.1
-description: Use the Asolytics Public API for ASO research and automation. Trigger this skill when the agent needs to query app metadata, availability, versions, installs, revenue, rankings, keyword metrics, live search results, recommended keywords, tracked keywords, tracking folders, competitors, projects, balance, or store charts from Asolytics. Also use it when a user wants curl examples, lightweight integrations, or repeatable reporting workflows against the Asolytics API.
+version: 1.1.0
+description: Use the Asolytics Public API for ASO research and automation. Trigger this skill when the agent needs to query app metadata, availability, versions, installs, revenue, rankings, keyword metrics, live search results, recommended keywords, tracked keywords, tracking folders, competitors, projects, per-country keyword counts, balance, subscription/plan limits, or store charts from Asolytics. Also use it when a user wants curl examples, lightweight integrations, or repeatable reporting workflows against the Asolytics API.
 homepage: https://github.com/Asolytics-Pro/asolytics-app-store-optimization-api
 ---
 
@@ -63,7 +63,7 @@ Use the Applications endpoints for:
 - store availability
 - version history
 - installs and revenue history
-- ranking history
+- ranking history (full history, or the latest known position per keyword via `applications/ranking/latest-by-keywords`)
 
 Start with the narrowest possible app set because some metadata endpoints bill per returned pair.
 
@@ -75,7 +75,7 @@ Use the Keywords and Recommended Keywords endpoints for:
 - popularity history
 - latest keyword metrics
 - live search top 50
-- recommended keyword review
+- recommended keyword review — `recommended-keywords` is **paginated** (`page`/`per_page`, 100–1000); loop until `pagination.current_page == pagination.total_pages`, and narrow with `filters[recommended_keyword_state][]` (recommended/tracked/declined) or `filters[sources][]` (meta/competitors/suggestions/rankings/related)
 - async rank tracking jobs with optional webhook callbacks
 
 When the user wants automation, prefer plain HTTP calls and return the exact request payload you used.
@@ -100,6 +100,13 @@ Use Competitors and Store Charts for:
 - listing current competitors
 - marking or unmarking a competitor
 - retrieving top-500 charts by store, country, cluster, category, and device
+
+### Project & Account Insight
+
+Use Projects and Subscription for cheap, high-level dashboards:
+
+- `projects/countries-keywords-counts` — per-country tracked / recommended / ranking keyword counts plus their day-over-day `dynamic`, for one project. A cheap snapshot of project breadth; note it reflects the **previous day** (use the list endpoints for exact, current values).
+- `subscription/limits` — plan `total` vs `used` for keywords, apps, archived apps, and public API tokens. Pair with `GET /public-api/v1/balance` whenever quota or token headroom matters before a wide query.
 
 ## Guardrails
 

@@ -29,7 +29,8 @@
             "schema": {
               "type": "array",
               "items": {
-                "type": "string"
+                "type": "string",
+                "maxLength": 128
               },
               "maxItems": 10
             },
@@ -46,7 +47,8 @@
             "schema": {
               "type": "array",
               "items": {
-                "type": "string"
+                "type": "string",
+                "maxLength": 35
               },
               "maxItems": 10
             },
@@ -154,7 +156,8 @@
             "schema": {
               "type": "array",
               "items": {
-                "type": "string"
+                "type": "string",
+                "maxLength": 128
               },
               "maxItems": 10
             },
@@ -171,7 +174,8 @@
             "schema": {
               "type": "array",
               "items": {
-                "type": "string"
+                "type": "string",
+                "maxLength": 35
               },
               "maxItems": 10
             },
@@ -279,7 +283,8 @@
             "schema": {
               "type": "array",
               "items": {
-                "type": "string"
+                "type": "string",
+                "maxLength": 128
               },
               "maxItems": 10
             },
@@ -385,7 +390,8 @@
             "description": "Store origin id of the application — App Store: numeric track id (e.g. `1234567890`); Google Play: bundle id (e.g. `com.acme.app`).",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 128
             },
             "example": "1234567890"
           }
@@ -496,7 +502,8 @@
             "description": "Store origin id of the application — App Store: numeric track id (e.g. `1234567890`); Google Play: bundle id (e.g. `com.acme.app`).",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 128
             },
             "example": "1234567890"
           },
@@ -627,7 +634,8 @@
             "description": "Store origin id of the application — App Store: numeric track id (e.g. `1234567890`); Google Play: bundle id (e.g. `com.acme.app`).",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 128
             },
             "example": "1234567890"
           },
@@ -758,7 +766,8 @@
             "description": "Store origin id of the application — App Store: numeric track id (e.g. `1234567890`); Google Play: bundle id (e.g. `com.acme.app`).",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 128
             },
             "example": "1234567890"
           },
@@ -855,6 +864,7 @@
             "required": false,
             "schema": {
               "type": "integer",
+              "maximum": 500,
               "minimum": 1
             },
             "example": 1
@@ -866,6 +876,7 @@
             "required": false,
             "schema": {
               "type": "integer",
+              "maximum": 500,
               "minimum": 1
             },
             "example": 10
@@ -885,6 +896,148 @@
                       "properties": {
                         "data": {
                           "$ref": "#/components/schemas/PublicApiApplicationsRankingViewSchema"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid public API token."
+          },
+          "422": {
+            "description": "Validation error."
+          },
+          "404": {
+            "description": "Application not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiAppNotFoundSchema"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Not enough tokens on the balance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PublicApiResponseViewSchema"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PublicApiNotEnoughTokensSchema"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PublicApiResponseViewSchema"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PublicApiInternalErrorSchema"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "publicApiToken": []
+          }
+        ]
+      }
+    },
+    "/public-api/v1/applications/ranking/latest-by-keywords": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "summary": "Latest ranking position per keyword",
+        "description": "Returns the app's **latest known** ranking position for each of the requested keywords in the given store/country. Because keywords are parsed on independent schedules, each keyword carries its own `date` — they will not always share the same parse day. Keywords the app does not currently rank for are omitted from the response. The store (Google Play / App Store) is inferred from the `origin_id`.<br><br>**Costs:** 1 token per 30 requested keywords, minimum 5 per call (billed on the request, not the number of rows returned).",
+        "operationId": "publicApiApplicationsRankingLatestByKeywords",
+        "parameters": [
+          {
+            "name": "origin_id",
+            "in": "query",
+            "description": "App store origin id — App Store: numeric track id (e.g. `1234567890`); Google Play: bundle id (e.g. `com.acme.app`).",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "example": "1234567890"
+          },
+          {
+            "name": "country_code",
+            "in": "query",
+            "description": "Sourced from `/v1/common-catalogs/countries`.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 2,
+              "minLength": 2
+            },
+            "example": "US"
+          },
+          {
+            "name": "keywords[]",
+            "in": "query",
+            "description": "Keywords to look up (max 1000, each ≤80 chars).",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "maxItems": 1000
+            },
+            "example": [
+              "fitness app",
+              "workout tracker"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest position per keyword.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PublicApiResponseViewSchema"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ApplicationsRankingLatestByKeywordsViewSchema"
                         }
                       },
                       "type": "object"
@@ -1616,7 +1769,8 @@
                   "non_competitor",
                   "indirect_competitor"
                 ]
-              }
+              },
+              "maxItems": 50
             }
           }
         ],
@@ -1735,6 +1889,7 @@
                   "competitor_origin_id": {
                     "description": "Store origin id of the competitor app — App Store: numeric track id; Google Play: bundle id.",
                     "type": "string",
+                    "maxLength": 128,
                     "example": "1234567890"
                   },
                   "state": {
@@ -1873,6 +2028,7 @@
                   "competitor_origin_id": {
                     "description": "Store origin id of the competitor app — App Store: numeric track id; Google Play: bundle id.",
                     "type": "string",
+                    "maxLength": 128,
                     "example": "1234567890"
                   }
                 },
@@ -1976,175 +2132,6 @@
         ]
       }
     },
-    "/public-api/v1/keywords/ranking/track": {
-      "post": {
-        "tags": [
-          "Keywords"
-        ],
-        "summary": "Track keyword rankings",
-        "description": "Runs an on-demand keyword-ranking scan for a (store, country) and returns each keyword's top positions with the apps holding them. Use this when you need fresh ranking data *now* for keywords you don't already have tracked. Without `response_conf` the call blocks on the scan and the response carries the result; with `response_conf.url` the task is queued and the result is later POSTed to that URL (the immediate response then only carries task info). Up to 500 keywords per request. Keywords already in your tracked-keyword quota are billed as free; the remainder are **paid keywords**.<br><br>**Costs:** 5 tokens per paid keyword, minimum 5 per call.",
-        "operationId": "publicApiTrackKeywordsRanking",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "required": [
-                  "store",
-                  "country_code",
-                  "keywords"
-                ],
-                "properties": {
-                  "store": {
-                    "type": "string",
-                    "enum": [
-                      "APP_STORE",
-                      "GOOGLE_PLAY"
-                    ],
-                    "example": "APP_STORE"
-                  },
-                  "country_code": {
-                    "description": "Sourced from `/v1/common-catalogs/countries`.",
-                    "type": "string",
-                    "maxLength": 2,
-                    "minLength": 2,
-                    "example": "US"
-                  },
-                  "keywords": {
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "example": "photo editor"
-                    },
-                    "maxItems": 500,
-                    "minItems": 1
-                  },
-                  "custom_data": {
-                    "description": "Arbitrary key/value data echoed back in the task info.",
-                    "type": "object",
-                    "example": {
-                      "client_request_id": "abc-123",
-                      "campaign": "spring-2026"
-                    },
-                    "nullable": true,
-                    "additionalProperties": true
-                  },
-                  "response_conf": {
-                    "description": "When present, the task is processed asynchronously and the result is POSTed to `url`.",
-                    "properties": {
-                      "url": {
-                        "type": "string",
-                        "format": "uri",
-                        "example": "https://example.com/webhook"
-                      },
-                      "headers": {
-                        "description": "Additional headers sent with the callback request. Values are strings.",
-                        "type": "object",
-                        "example": {
-                          "Authorization": "Bearer xxx",
-                          "X-Trace-Id": "abc"
-                        },
-                        "nullable": true,
-                        "additionalProperties": true
-                      }
-                    },
-                    "type": "object",
-                    "nullable": true
-                  }
-                },
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Synchronous result, or task info when processed asynchronously.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/PublicApiResponseViewSchema"
-                    },
-                    {
-                      "properties": {
-                        "data": {
-                          "oneOf": [
-                            {
-                              "$ref": "#/components/schemas/TrackKeywordsRankingResultViewSchema"
-                            },
-                            {
-                              "$ref": "#/components/schemas/TrackKeywordsRankingTaskInfoViewSchema"
-                            }
-                          ]
-                        }
-                      },
-                      "type": "object"
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid public API token."
-          },
-          "422": {
-            "description": "Validation error."
-          },
-          "402": {
-            "description": "Not enough tokens on the balance.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/PublicApiResponseViewSchema"
-                    },
-                    {
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/PublicApiNotEnoughTokensSchema"
-                        }
-                      },
-                      "type": "object"
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal error.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/PublicApiResponseViewSchema"
-                    },
-                    {
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/PublicApiInternalErrorSchema"
-                        }
-                      },
-                      "type": "object"
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "publicApiToken": []
-          }
-        ]
-      }
-    },
     "/public-api/v1/keywords/ranking": {
       "get": {
         "tags": [
@@ -2157,12 +2144,13 @@
           {
             "name": "keywords[]",
             "in": "query",
-            "description": "Keyword phrases (max 500).",
+            "description": "Keyword phrases (max 500, each ≤80 chars).",
             "required": true,
             "schema": {
               "type": "array",
               "items": {
-                "type": "string"
+                "type": "string",
+                "maxLength": 80
               },
               "maxItems": 500
             },
@@ -2311,12 +2299,13 @@
           {
             "name": "keywords[]",
             "in": "query",
-            "description": "Keyword phrases (max 1000).",
+            "description": "Keyword phrases (max 1000, each ≤80 chars).",
             "required": true,
             "schema": {
               "type": "array",
               "items": {
-                "type": "string"
+                "type": "string",
+                "maxLength": 80
               },
               "maxItems": 1000
             },
@@ -2465,12 +2454,13 @@
           {
             "name": "keywords[]",
             "in": "query",
-            "description": "Keyword phrases (max 250). Duplicates are deduplicated.",
+            "description": "Keyword phrases (max 250, each ≤80 chars). Duplicates are deduplicated.",
             "required": true,
             "schema": {
               "type": "array",
               "items": {
-                "type": "string"
+                "type": "string",
+                "maxLength": 80
               },
               "maxItems": 250,
               "minItems": 1
@@ -2508,7 +2498,7 @@
           {
             "name": "metrics[]",
             "in": "query",
-            "description": "Metrics to include in the response (min 1). Allowed values: `popularity`, `max_popularity`, `impressions`, `difficulty`, `language`.",
+            "description": "Metrics to include in the response (min 1, max 50). Allowed values: `popularity`, `max_popularity`, `impressions`, `difficulty`, `language`.",
             "required": true,
             "schema": {
               "type": "array",
@@ -2522,6 +2512,7 @@
                   "language"
                 ]
               },
+              "maxItems": 50,
               "minItems": 1
             },
             "example": [
@@ -2638,7 +2629,8 @@
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 80
             },
             "example": "photo editor"
           },
@@ -2837,13 +2829,121 @@
         ]
       }
     },
+    "/public-api/v1/projects/countries-keywords-counts": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get per-country keyword counters",
+        "description": "Returns, for every store country of the project, the tracked / recommended / ranking keyword counters together with their day-over-day `dynamic`. The result is keyed by 2-letter country code.<br><br>**Note:** these counters are pre-aggregated and reflect the **previous day's** snapshot, so they may lag the real data by up to a day. For exact, up-to-the-moment values use the list endpoints directly (e.g. `/v1/tracking/keywords`, `/v1/recommended-keywords`, `/v1/applications/ranking`).<br><br>**Costs:** 20 tokens per call.",
+        "operationId": "publicApiGetCountriesKeywordsCounts",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "description": "Sourced from `/v1/projects/list`.",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "example": 123
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Per-country keyword counters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PublicApiResponseViewSchema"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CountriesKeywordsCountsViewSchema"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid public API token."
+          },
+          "404": {
+            "description": "Project not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiProjectNotFoundSchema"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Not enough tokens on the balance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PublicApiResponseViewSchema"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PublicApiNotEnoughTokensSchema"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PublicApiResponseViewSchema"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PublicApiInternalErrorSchema"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "publicApiToken": []
+          }
+        ]
+      }
+    },
     "/public-api/v1/recommended-keywords": {
       "get": {
         "tags": [
           "Recommended Keywords"
         ],
         "summary": "List recommended keywords",
-        "description": "Returns the keywords we recommend you track for a project in the given country, surfaced from the project's app metadata, competitors' metadata, store suggestions, current rankings and related keywords. Each entry carries the phrase, the `sources` that proposed it and its current `state` (`recommended` — fresh suggestion, `tracked` — already in your tracking set, `declined` — you previously dismissed it via `/decline`). Filter by state or by source(s) to narrow the working set.<br><br>**Costs:** `max(10, ceil(returned / 100))` tokens — minimum 10 per call, then 1 extra token for every started bucket of 100 returned keywords.",
+        "description": "Returns the keywords we recommend you track for a project in the given country, surfaced from the project's app metadata, competitors' metadata, store suggestions, current rankings and related keywords. Each entry carries the phrase, the `sources` that proposed it and its current `state` (`recommended` — fresh suggestion, `tracked` — already in your tracking set, `declined` — you previously dismissed it via `/decline`). Filter by state or by source(s) to narrow the working set. The result is paginated — `pagination.total` reflects the filtered universe.<br><br>**Costs:** `max(10, ceil(returned / 100))` tokens — minimum 10 per call, then 1 extra token for every started bucket of 100 keywords returned on the page.",
         "operationId": "publicApiListRecommendedKeywords",
         "parameters": [
           {
@@ -2869,6 +2969,30 @@
             "example": "US"
           },
           {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (default 1).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "description": "Items per page (min 100, max 1000, default 100).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "maximum": 1000,
+              "minimum": 100
+            },
+            "example": 100
+          },
+          {
             "name": "filters[recommended_keyword_state][]",
             "in": "query",
             "description": "Keep only keywords in the given state(s).",
@@ -2882,7 +3006,8 @@
                   "tracked",
                   "declined"
                 ]
-              }
+              },
+              "maxItems": 50
             }
           },
           {
@@ -2901,7 +3026,8 @@
                   "rankings",
                   "related"
                 ]
-              }
+              },
+              "maxItems": 50
             }
           }
         ],
@@ -3028,8 +3154,10 @@
                     "type": "array",
                     "items": {
                       "type": "string",
+                      "maxLength": 80,
                       "example": "photo editor"
                     },
+                    "maxItems": 1000,
                     "minItems": 1
                   }
                 },
@@ -3161,8 +3289,10 @@
                     "type": "array",
                     "items": {
                       "type": "string",
+                      "maxLength": 80,
                       "example": "photo editor"
                     },
+                    "maxItems": 1000,
                     "minItems": 1
                   }
                 },
@@ -3299,7 +3429,8 @@
             "description": "Cluster key from `/v1/common-catalogs/clusters`.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 128
             },
             "example": "top-free"
           },
@@ -3309,7 +3440,8 @@
             "description": "Category key from `/v1/common-catalogs/categories`.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 128
             },
             "example": "36"
           },
@@ -3378,6 +3510,92 @@
           },
           "422": {
             "description": "Validation error."
+          },
+          "402": {
+            "description": "Not enough tokens on the balance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PublicApiResponseViewSchema"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PublicApiNotEnoughTokensSchema"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PublicApiResponseViewSchema"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PublicApiInternalErrorSchema"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "publicApiToken": []
+          }
+        ]
+      }
+    },
+    "/public-api/v1/subscription/limits": {
+      "get": {
+        "tags": [
+          "Subscription"
+        ],
+        "summary": "Get subscription limits",
+        "description": "Returns the plan limits of the authenticated user's current subscription — `max_keywords`, `max_apps`, `max_archived_apps` and `max_public_api_tokens` — each as a `total` (plan allowance) / `used` (currently consumed) pair. Team members see their team owner's plan.<br><br>**Costs:** 1 token per call.",
+        "operationId": "publicApiGetSubscriptionLimits",
+        "responses": {
+          "200": {
+            "description": "Current subscription limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PublicApiResponseViewSchema"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SubscriptionLimitsViewSchema"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid public API token."
           },
           "402": {
             "description": "Not enough tokens on the balance.",
@@ -3584,8 +3802,10 @@
                     "type": "array",
                     "items": {
                       "type": "string",
+                      "maxLength": 80,
                       "example": "photo editor"
                     },
+                    "maxItems": 1000,
                     "minItems": 1
                   }
                 },
@@ -3728,6 +3948,7 @@
                       "type": "integer",
                       "example": 456
                     },
+                    "maxItems": 1000,
                     "minItems": 1
                   }
                 },
@@ -3955,10 +4176,12 @@
                   },
                   "name": {
                     "type": "string",
+                    "maxLength": 255,
                     "example": "My folder"
                   },
                   "description": {
                     "type": "string",
+                    "maxLength": 1000,
                     "example": "Optional description",
                     "nullable": true
                   }
@@ -4190,10 +4413,12 @@
                 "properties": {
                   "name": {
                     "type": "string",
+                    "maxLength": 255,
                     "example": "Renamed folder"
                   },
                   "description": {
                     "type": "string",
+                    "maxLength": 1000,
                     "example": "New description",
                     "nullable": true
                   }
@@ -4338,8 +4563,10 @@
                     "type": "array",
                     "items": {
                       "type": "string",
+                      "maxLength": 80,
                       "example": "photo editor"
                     },
+                    "maxItems": 1000,
                     "minItems": 1
                   }
                 },
@@ -4473,8 +4700,10 @@
                     "type": "array",
                     "items": {
                       "type": "string",
+                      "maxLength": 80,
                       "example": "photo editor"
                     },
+                    "maxItems": 1000,
                     "minItems": 1
                   }
                 },
@@ -4965,6 +5194,34 @@
         },
         "type": "object"
       },
+      "ApplicationsRankingLatestByKeywordsViewSchema": {
+        "description": "Map keyed by keyword. Each entry holds the app's latest known position for that keyword and the date that position was parsed. Dates may differ between keywords. Keywords the app does not currently rank for are omitted.",
+        "type": "object",
+        "example": {
+          "fitness app": {
+            "date": "2025-12-15",
+            "position": 1
+          },
+          "workout tracker": {
+            "date": "2025-12-14",
+            "position": 7
+          }
+        },
+        "additionalProperties": {
+          "properties": {
+            "date": {
+              "type": "string",
+              "format": "date",
+              "example": "2025-12-15"
+            },
+            "position": {
+              "type": "integer",
+              "example": 1
+            }
+          },
+          "type": "object"
+        }
+      },
       "PublicApiApplicationsRankingViewSchema": {
         "properties": {
           "pagination": {
@@ -5159,6 +5416,73 @@
           }
         },
         "type": "object"
+      },
+      "CountriesKeywordsCountsViewSchema": {
+        "description": "Map keyed by 2-letter country code. Each country carries the tracked / recommended / ranking keyword counters and their day-over-day dynamic.",
+        "type": "object",
+        "example": {
+          "US": {
+            "tracking": {
+              "count": 120,
+              "dynamic": 4
+            },
+            "recommended": {
+              "count": 35,
+              "dynamic": -2
+            },
+            "ranking": {
+              "count": 5023,
+              "dynamic": 17
+            }
+          }
+        },
+        "additionalProperties": {
+          "properties": {
+            "tracking": {
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "example": 120
+                },
+                "dynamic": {
+                  "description": "Change versus the previous day.",
+                  "type": "integer",
+                  "example": 4
+                }
+              },
+              "type": "object"
+            },
+            "recommended": {
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "example": 35
+                },
+                "dynamic": {
+                  "description": "Change versus the previous day.",
+                  "type": "integer",
+                  "example": -2
+                }
+              },
+              "type": "object"
+            },
+            "ranking": {
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "example": 5023
+                },
+                "dynamic": {
+                  "description": "Change versus the previous day.",
+                  "type": "integer",
+                  "example": 17
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
+        }
       },
       "PublicApiFolderNotFoundSchema": {
         "properties": {
@@ -5843,6 +6167,15 @@
         },
         "type": "object"
       },
+      "PublicApiRateLimitExceededSchema": {
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Too many requests"
+          }
+        },
+        "type": "object"
+      },
       "PublicApiRecommendedKeywordViewSchema": {
         "properties": {
           "keyword": {
@@ -5875,7 +6208,11 @@
       },
       "PublicApiRecommendedKeywordsListViewSchema": {
         "properties": {
+          "pagination": {
+            "$ref": "#/components/schemas/PublicApiPaginationViewSchema"
+          },
           "keywords": {
+            "description": "Recommended keywords for the current page.",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PublicApiRecommendedKeywordViewSchema"
@@ -5934,6 +6271,69 @@
                   "GOOGLE_PLAY"
                 ],
                 "example": "APP_STORE"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "SubscriptionLimitsViewSchema": {
+        "description": "Plan limits of the authenticated user's current subscription. Each entry carries the plan allowance (`total`) and how much of it is already consumed (`used`).",
+        "properties": {
+          "limits": {
+            "properties": {
+              "max_keywords": {
+                "properties": {
+                  "total": {
+                    "type": "integer",
+                    "example": 1000
+                  },
+                  "used": {
+                    "type": "integer",
+                    "example": 120
+                  }
+                },
+                "type": "object"
+              },
+              "max_apps": {
+                "properties": {
+                  "total": {
+                    "type": "integer",
+                    "example": 10
+                  },
+                  "used": {
+                    "type": "integer",
+                    "example": 3
+                  }
+                },
+                "type": "object"
+              },
+              "max_archived_apps": {
+                "properties": {
+                  "total": {
+                    "type": "integer",
+                    "example": 5
+                  },
+                  "used": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                },
+                "type": "object"
+              },
+              "max_public_api_tokens": {
+                "properties": {
+                  "total": {
+                    "type": "integer",
+                    "example": 50000
+                  },
+                  "used": {
+                    "type": "integer",
+                    "example": 4200
+                  }
+                },
+                "type": "object"
               }
             },
             "type": "object"
@@ -6213,6 +6613,10 @@
     {
       "name": "Store Charts",
       "description": "Store Charts"
+    },
+    {
+      "name": "Subscription",
+      "description": "Subscription"
     },
     {
       "name": "Tracking Keywords",

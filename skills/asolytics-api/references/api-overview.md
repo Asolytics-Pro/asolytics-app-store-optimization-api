@@ -56,19 +56,19 @@ Use these first when the user does not already know valid store, locale, country
 
 ### Keywords
 
-- Ranking history
+- Ranking history (positions are `{position, item: {origin_id, title}}`)
 - Popularity history
 - Latest metrics
 - Live search top 50
-- Ranking track jobs
+- Forced ranking re-check (`keywords/ranking/force-recheck`) — on-demand re-scan of up to 500 phrases, optional per-phrase webhook; 15 tokens per unique phrase, +1 with a webhook, +1 more with `include_positions`
 - Recommended keywords (paginated; filter by state and source)
 - Decline and undecline actions
 
 ### Tracking
 
-- Tracked keywords
-- Tracking folders
-- Add, delete, patch, and folder assignment operations
+- Tracked keywords (filter by `filters[folder_ids][]`, collapse case/punctuation variants with `filters[deduplicate_modificators]`)
+- Tracking folders, cross-country or country-scoped (`settings.cross_country`, cross-country by default)
+- Add, delete, patch, and folder assignment operations (folder removal takes an optional `country_code`)
 
 ### Competitors
 
@@ -83,9 +83,13 @@ Use these first when the user does not already know valid store, locale, country
 ### Other
 
 - Balance
-- Projects list
+- Projects list — owned, shared, and (for enterprise leads) team members' projects, each with `access.owner.email` and `access.level` (`read`/`edit`/`owner`)
 - Per-country keyword counters (`projects/countries-keywords-counts`)
 - Store charts
+
+## Project Access
+
+Every project-scoped endpoint (tracking, folders, recommended keywords, competitors, per-country counters) answers `403 {"error": "Access to the project is denied"}` when the token has no access to that `project_id`. Read `access.level` from `projects/list` before writing: `read` projects reject mutations.
 
 ## Practical Workflow
 
@@ -139,6 +143,21 @@ curl -sS \
   --data-urlencode "country_code=US" \
   --data-urlencode "keywords[]=fitness app" \
   --data-urlencode "keywords[]=workout tracker"
+```
+
+### Force a ranking re-check (with webhook)
+
+```bash
+curl -sS \
+  -H "X-PUBLIC-API-TOKEN: $ASOLYTICS_PUBLIC_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -X POST "https://app.asolytics.pro/public-api/v1/keywords/ranking/force-recheck" \
+  -d '{
+        "keywords": ["photo editor", "video maker"],
+        "store": "APP_STORE",
+        "country_code": "US",
+        "webhook": {"url": "https://example.com/asolytics/recheck", "include_positions": true}
+      }'
 ```
 
 ### Plan limits (total vs used)

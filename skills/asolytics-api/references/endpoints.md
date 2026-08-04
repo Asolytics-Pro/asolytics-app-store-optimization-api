@@ -3,7 +3,7 @@
 - Source docs: `https://app.asolytics.pro/api/public-api/documentation`
 - Source OpenAPI: `https://app.asolytics.pro/api/public-api/docs?public-api-docs.json`
 - Generated from spec version: `1.0.0-alpha`
-- Generated at: `2026-06-18T18:24:01.072654+00:00`
+- Generated at: `2026-08-04T16:27:59.230099+00:00`
 
 ## Authentication
 
@@ -212,6 +212,19 @@
 `date_from` - in `query` - string - required
 `date_to` - in `query` - string - required
 
+### `POST /public-api/v1/keywords/ranking/force-recheck`
+
+- Summary: Force a keyword ranking re-check
+- Notes: Orders an on-demand re-scan of the store top for the given phrases in a (store, country). The call returns as soon as the re-check is queued — the fresh positions land in our storage a few minutes later and can be read through `/v1/keywords/ranking` or `/v1/applications/ranking`. Supply `webhook.url` to be notified: we POST one message per phrase as soon as its scan is done. Up to 500 phrases per request; duplicates (case-insensitive) are collapsed and billed once. **Webhook payload:** `{request: {id}, task: {keyword, country_code, store}, result: {status}}` where `request.id` is the `request.id` of this response. With `webhook.include_positions = true` the result also carries `positions` — the scanned top as `[{position, item: {origin_id}}, …]`, capped at 50 entries; an empty array means the scan found nothing. We ignore the response body and only look at the status code: a non-200 is retried twice with a growing delay, then dropped. Redirects are not followed and the request times out after a few seconds. The callback host must resolve to a public address — private, loopback and link-local targets are rejected and the notice is dropped without retries. **Costs**, charged per unique phrase when the re-check is queued (not when it completes): 15 tokens, **+1** with a webhook, **+1** more with `include_positions` — so 15 / 16 / 17 per phrase.
+
+- Request body:
+
+- Content-Type: `application/json`
+- `keywords` required: array<string> — Phrases to re-check (max 500, each ≤80 chars).
+- `store` required: string (APP_STORE, GOOGLE_PLAY)
+- `country_code` required: string — Sourced from `/v1/common-catalogs/countries`.
+- `webhook`: object — When present, a POST is sent per completed phrase.
+
 ## Live Search
 
 ### `GET /public-api/v1/live-search`
@@ -238,7 +251,7 @@
 ### `GET /public-api/v1/projects/list`
 
 - Summary: List user projects
-- Notes: Returns every project (app + country) belonging to the authenticated user. The `id` of each project is what every project-scoped endpoint (tracking, recommended-keywords, competitors) expects as `project_id`. **Costs:** 10 tokens per call.
+- Notes: Returns every project (app + country) the authenticated user can access: projects they own, projects shared with them, and — for enterprise team leads/owners — projects owned by members below them in the team. Each project carries an `access` block with the project `owner`'s email and the caller's `level` (`read`/`edit`/`owner`). The `id` of each project is what every project-scoped endpoint (tracking, recommended-keywords, competitors) expects as `project_id`. **Costs:** 10 tokens per call.
 
 ## Recommended Keywords
 
@@ -335,7 +348,7 @@
 ### `PATCH /public-api/v1/tracking/folders/{folder}`
 
 - Summary: Update folder
-- Notes: Renames a folder and/or updates its description. Omit a field to leave it unchanged. Returns 404 if the folder doesn't belong to any project of the authenticated user. **Costs:** 1 token per call.
+- Notes: Renames a folder, updates its description and/or its cross-country setting. Omit a field to leave it unchanged. With `settings.cross_country = true` the folder spans every country of the project — a keyword added to it in one country is reported as belonging to the folder in all of them; with `false` the folder membership is country-scoped. New folders are cross-country by default. Returns 404 if the folder doesn't belong to any project of the authenticated user. **Costs:** 1 token per call.
 - Parameters:
 
 `folder` - in `path` - integer - required
@@ -345,11 +358,12 @@
 - Content-Type: `application/json`
 - `name`: string
 - `description`: string
+- `settings`: object
 
 ### `DELETE /public-api/v1/tracking/folders/{folder}/keywords`
 
 - Summary: Remove keywords from folder
-- Notes: Removes the given keywords (by phrase) from a folder. The keywords stay tracked on the project — only the folder membership is removed. Returns 404 if the project or folder doesn't belong to the authenticated user. **Costs:** 1 token per 100 keywords in the request, minimum 1 per call.
+- Notes: Removes the given keywords (by phrase) from a folder. The keywords stay tracked on the project — only the folder membership is removed. Returns 404 if the project or folder doesn't belong to the authenticated user. **`country_code` is optional.** Omit it and the keyword leaves the folder entirely — in every country, exactly as it behaves for a cross-country folder (`settings.cross_country = true`). Pass it and a country-scoped folder (`settings.cross_country = false`) loses the membership of that country only, keeping the keyword in the folder in its other countries. For a cross-country folder the parameter changes nothing: such a folder holds a single membership shared by all countries, so removing it always removes it everywhere. **Costs:** 1 token per 100 keywords in the request, minimum 1 per call.
 - Parameters:
 
 `folder` - in `path` - integer - required
@@ -358,6 +372,7 @@
 
 - Content-Type: `application/json`
 - `project_id` required: integer — Sourced from `/v1/projects/list`.
+- `country_code`: string — Optional. Sourced from `/v1/common-catalogs/countries`. Omit it to remove the keyword from the folder in every country; pass it to remove only this country's membership of a country-scoped folder. Ignored for cross-country folders.
 - `keywords` required: array<string>
 
 ### `POST /public-api/v1/tracking/folders/{folder}/keywords`
@@ -392,11 +407,13 @@
 ### `GET /public-api/v1/tracking/keywords`
 
 - Summary: List tracked keywords
-- Notes: Returns every keyword you currently track on a project for the given country, with each keyword's detected language and the folders it belongs to. Use it to enumerate the tracking set you're billing against, and to feed the `keyword_ids` parameter of the delete endpoint. **Costs:** 1 token per 100 returned keywords, minimum 1 per call.
+- Notes: Returns every keyword you currently track on a project for the given country, with each keyword's detected language and the folders it belongs to. A cross-country folder (`settings.cross_country = true`, see `GET /v1/tracking/folders`) is reported for the keyword in every country it is tracked in, no matter which country it was added to the folder from; a country-scoped folder only in its own country. Dropping a keyword from tracking in one country only takes it out of country-scoped folders of that country — in the remaining countries it stays in its folders. Use the endpoint to enumerate the tracking set you're billing against, and to feed the `keyword_ids` parameter of the delete endpoint. **Costs:** 1 token per 100 returned keywords, minimum 1 per call.
 - Parameters:
 
 `project_id` - in `query` - integer - required
 `country_code` - in `query` - string - required
+`filters[folder_ids][]` - in `query` - array<integer> - maxItems=100
+`filters[deduplicate_modificators]` - in `query` - boolean
 
 ### `POST /public-api/v1/tracking/keywords`
 

@@ -1800,6 +1800,16 @@
           "401": {
             "description": "Missing or invalid public API token."
           },
+          "403": {
+            "description": "No access to the project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiProjectAccessDeniedSchema"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Project not found.",
             "content": {
@@ -1933,6 +1943,16 @@
           "401": {
             "description": "Missing or invalid public API token."
           },
+          "403": {
+            "description": "No access to the project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiProjectAccessDeniedSchema"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Project or application not found.",
             "content": {
@@ -2063,6 +2083,16 @@
           "401": {
             "description": "Missing or invalid public API token."
           },
+          "403": {
+            "description": "No access to the project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiProjectAccessDeniedSchema"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Project or application not found.",
             "content": {
@@ -2082,6 +2112,163 @@
           },
           "402": {
             "description": "Not enough tokens on the balance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PublicApiResponseViewSchema"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PublicApiNotEnoughTokensSchema"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PublicApiResponseViewSchema"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PublicApiInternalErrorSchema"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "publicApiToken": []
+          }
+        ]
+      }
+    },
+    "/public-api/v1/keywords/ranking/force-recheck": {
+      "post": {
+        "tags": [
+          "Keywords"
+        ],
+        "summary": "Force a keyword ranking re-check",
+        "description": "Orders an on-demand re-scan of the store top for the given phrases in a (store, country). The call returns as soon as the re-check is queued — the fresh positions land in our storage a few minutes later and can be read through `/v1/keywords/ranking` or `/v1/applications/ranking`. Supply `webhook.url` to be notified: we POST one message per phrase as soon as its scan is done. Up to 500 phrases per request; duplicates (case-insensitive) are collapsed and billed once.<br><br>**Webhook payload:** `{request: {id}, task: {keyword, country_code, store}, result: {status}}` where `request.id` is the `request.id` of this response. With `webhook.include_positions = true` the result also carries `positions` — the scanned top as `[{position, item: {origin_id}}, …]`, capped at 50 entries; an empty array means the scan found nothing. We ignore the response body and only look at the status code: a non-200 is retried twice with a growing delay, then dropped. Redirects are not followed and the request times out after a few seconds. The callback host must resolve to a public address — private, loopback and link-local targets are rejected and the notice is dropped without retries.<br><br>**Costs**, charged per unique phrase when the re-check is queued (not when it completes): 15 tokens, **+1** with a webhook, **+1** more with `include_positions` — so 15 / 16 / 17 per phrase.",
+        "operationId": "publicApiForceRecheckKeywordsRanking",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "keywords",
+                  "store",
+                  "country_code"
+                ],
+                "properties": {
+                  "keywords": {
+                    "description": "Phrases to re-check (max 500, each ≤80 chars).",
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 80
+                    },
+                    "maxItems": 500,
+                    "example": [
+                      "photo editor",
+                      "video maker"
+                    ]
+                  },
+                  "store": {
+                    "type": "string",
+                    "enum": [
+                      "APP_STORE",
+                      "GOOGLE_PLAY"
+                    ],
+                    "example": "APP_STORE"
+                  },
+                  "country_code": {
+                    "description": "Sourced from `/v1/common-catalogs/countries`.",
+                    "type": "string",
+                    "maxLength": 2,
+                    "minLength": 2,
+                    "example": "US"
+                  },
+                  "webhook": {
+                    "description": "When present, a POST is sent per completed phrase.",
+                    "properties": {
+                      "url": {
+                        "description": "http/https only.",
+                        "type": "string",
+                        "format": "uri",
+                        "maxLength": 2048,
+                        "example": "https://example.com/asolytics/recheck"
+                      },
+                      "headers": {
+                        "description": "Extra headers sent with the callback (max 10; values are strings). `Host`, `Content-Type` and `Content-Length` cannot be overridden.",
+                        "type": "object",
+                        "example": {
+                          "Authorization": "Bearer xxx"
+                        },
+                        "nullable": true,
+                        "additionalProperties": true
+                      },
+                      "include_positions": {
+                        "description": "Ship the scanned top (`result.positions`) with the callback. Costs 1 extra token per phrase.",
+                        "type": "boolean",
+                        "default": false,
+                        "example": false
+                      }
+                    },
+                    "type": "object",
+                    "nullable": true
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Re-check queued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PublicApiResponseViewSchema"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PublicApiForceRecheckRankingViewSchema"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Not enough tokens.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2749,7 +2936,7 @@
           "Projects"
         ],
         "summary": "List user projects",
-        "description": "Returns every project (app + country) belonging to the authenticated user. The `id` of each project is what every project-scoped endpoint (tracking, recommended-keywords, competitors) expects as `project_id`.<br><br>**Costs:** 10 tokens per call.",
+        "description": "Returns every project (app + country) the authenticated user can access: projects they own, projects shared with them, and — for enterprise team leads/owners — projects owned by members below them in the team. Each project carries an `access` block with the project `owner`'s email and the caller's `level` (`read`/`edit`/`owner`). The `id` of each project is what every project-scoped endpoint (tracking, recommended-keywords, competitors) expects as `project_id`.<br><br>**Costs:** 10 tokens per call.",
         "operationId": "publicApiGetProjectsList",
         "responses": {
           "200": {
@@ -2874,6 +3061,16 @@
           },
           "401": {
             "description": "Missing or invalid public API token."
+          },
+          "403": {
+            "description": "No access to the project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiProjectAccessDeniedSchema"
+                }
+              }
+            }
           },
           "404": {
             "description": "Project not found.",
@@ -3057,6 +3254,16 @@
           "401": {
             "description": "Missing or invalid public API token."
           },
+          "403": {
+            "description": "No access to the project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiProjectAccessDeniedSchema"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Project not found.",
             "content": {
@@ -3192,6 +3399,16 @@
           "401": {
             "description": "Missing or invalid public API token."
           },
+          "403": {
+            "description": "No access to the project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiProjectAccessDeniedSchema"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Project not found.",
             "content": {
@@ -3326,6 +3543,16 @@
           },
           "401": {
             "description": "Missing or invalid public API token."
+          },
+          "403": {
+            "description": "No access to the project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiProjectAccessDeniedSchema"
+                }
+              }
+            }
           },
           "404": {
             "description": "Project not found.",
@@ -3655,7 +3882,7 @@
           "Tracking Keywords"
         ],
         "summary": "List tracked keywords",
-        "description": "Returns every keyword you currently track on a project for the given country, with each keyword's detected language and the folders it belongs to. Use it to enumerate the tracking set you're billing against, and to feed the `keyword_ids` parameter of the delete endpoint.<br><br>**Costs:** 1 token per 100 returned keywords, minimum 1 per call.",
+        "description": "Returns every keyword you currently track on a project for the given country, with each keyword's detected language and the folders it belongs to. A cross-country folder (`settings.cross_country = true`, see `GET /v1/tracking/folders`) is reported for the keyword in every country it is tracked in, no matter which country it was added to the folder from; a country-scoped folder only in its own country.<br><br>Dropping a keyword from tracking in one country only takes it out of country-scoped folders of that country — in the remaining countries it stays in its folders.<br><br>Use the endpoint to enumerate the tracking set you're billing against, and to feed the `keyword_ids` parameter of the delete endpoint.<br><br>**Costs:** 1 token per 100 returned keywords, minimum 1 per call.",
         "operationId": "publicApiListTrackedKeywords",
         "parameters": [
           {
@@ -3679,6 +3906,31 @@
               "minLength": 2
             },
             "example": "US"
+          },
+          {
+            "name": "filters[folder_ids][]",
+            "in": "query",
+            "description": "Keep only keywords that belong to at least one of the given folders (ids sourced from `GET /v1/tracking/folders`).",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "example": 123
+              },
+              "maxItems": 100
+            }
+          },
+          {
+            "name": "filters[deduplicate_modificators]",
+            "in": "query",
+            "description": "Collapse phrases that differ only by leading/trailing punctuation or letter case (modificators of the same normalized phrase) into a single row, preferring the plain phrase. Off by default — every tracked phrase is returned as is.",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "example": true
           }
         ],
         "responses": {
@@ -3706,6 +3958,16 @@
           },
           "401": {
             "description": "Missing or invalid public API token."
+          },
+          "403": {
+            "description": "No access to the project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiProjectAccessDeniedSchema"
+                }
+              }
+            }
           },
           "404": {
             "description": "Project not found.",
@@ -3841,11 +4103,18 @@
             "description": "Missing or invalid public API token."
           },
           "403": {
-            "description": "Plan keyword limit exceeded.",
+            "description": "Plan keyword limit exceeded, or no access to the project.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PublicApiKeywordsLimitExceededSchema"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PublicApiKeywordsLimitExceededSchema"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PublicApiProjectAccessDeniedSchema"
+                    }
+                  ]
                 }
               }
             }
@@ -3983,6 +4252,16 @@
           "401": {
             "description": "Missing or invalid public API token."
           },
+          "403": {
+            "description": "No access to the project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiProjectAccessDeniedSchema"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Project not found.",
             "content": {
@@ -4090,6 +4369,16 @@
           },
           "401": {
             "description": "Missing or invalid public API token."
+          },
+          "403": {
+            "description": "No access to the project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiProjectAccessDeniedSchema"
+                }
+              }
+            }
           },
           "404": {
             "description": "Project not found.",
@@ -4216,6 +4505,16 @@
           },
           "401": {
             "description": "Missing or invalid public API token."
+          },
+          "403": {
+            "description": "No access to the project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiProjectAccessDeniedSchema"
+                }
+              }
+            }
           },
           "404": {
             "description": "Project not found.",
@@ -4391,7 +4690,7 @@
           "Tracking Folders"
         ],
         "summary": "Update folder",
-        "description": "Renames a folder and/or updates its description. Omit a field to leave it unchanged. Returns 404 if the folder doesn't belong to any project of the authenticated user.<br><br>**Costs:** 1 token per call.",
+        "description": "Renames a folder, updates its description and/or its cross-country setting. Omit a field to leave it unchanged. With `settings.cross_country = true` the folder spans every country of the project — a keyword added to it in one country is reported as belonging to the folder in all of them; with `false` the folder membership is country-scoped. New folders are cross-country by default. Returns 404 if the folder doesn't belong to any project of the authenticated user.<br><br>**Costs:** 1 token per call.",
         "operationId": "publicApiUpdateFolder",
         "parameters": [
           {
@@ -4421,6 +4720,19 @@
                     "maxLength": 1000,
                     "example": "New description",
                     "nullable": true
+                  },
+                  "settings": {
+                    "required": [
+                      "cross_country"
+                    ],
+                    "properties": {
+                      "cross_country": {
+                        "description": "`true` — the folder spans every country of the project, `false` — its keywords are country-scoped.",
+                        "type": "boolean",
+                        "example": true
+                      }
+                    },
+                    "type": "object"
                   }
                 },
                 "type": "object"
@@ -4601,6 +4913,16 @@
           "401": {
             "description": "Missing or invalid public API token."
           },
+          "403": {
+            "description": "No access to the project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiProjectAccessDeniedSchema"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Project or folder not found.",
             "content": {
@@ -4667,7 +4989,7 @@
           "Tracking Folders"
         ],
         "summary": "Remove keywords from folder",
-        "description": "Removes the given keywords (by phrase) from a folder. The keywords stay tracked on the project — only the folder membership is removed. Returns 404 if the project or folder doesn't belong to the authenticated user.<br><br>**Costs:** 1 token per 100 keywords in the request, minimum 1 per call.",
+        "description": "Removes the given keywords (by phrase) from a folder. The keywords stay tracked on the project — only the folder membership is removed. Returns 404 if the project or folder doesn't belong to the authenticated user.<br><br>**`country_code` is optional.** Omit it and the keyword leaves the folder entirely — in every country, exactly as it behaves for a cross-country folder (`settings.cross_country = true`). Pass it and a country-scoped folder (`settings.cross_country = false`) loses the membership of that country only, keeping the keyword in the folder in its other countries. For a cross-country folder the parameter changes nothing: such a folder holds a single membership shared by all countries, so removing it always removes it everywhere.<br><br>**Costs:** 1 token per 100 keywords in the request, minimum 1 per call.",
         "operationId": "publicApiRemoveKeywordsFromFolder",
         "parameters": [
           {
@@ -4695,6 +5017,13 @@
                     "description": "Sourced from `/v1/projects/list`.",
                     "type": "integer",
                     "example": 123
+                  },
+                  "country_code": {
+                    "description": "Optional. Sourced from `/v1/common-catalogs/countries`. Omit it to remove the keyword from the folder in every country; pass it to remove only this country's membership of a country-scoped folder. Ignored for cross-country folders.",
+                    "type": "string",
+                    "maxLength": 2,
+                    "minLength": 2,
+                    "example": "US"
                   },
                   "keywords": {
                     "type": "array",
@@ -4737,6 +5066,16 @@
           },
           "401": {
             "description": "Missing or invalid public API token."
+          },
+          "403": {
+            "description": "No access to the project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiProjectAccessDeniedSchema"
+                }
+              }
+            }
           },
           "404": {
             "description": "Project or folder not found.",
@@ -4823,6 +5162,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/AppCommonInfoViewSchema"
+                },
+                {
+                  "$ref": "#/components/schemas/ProjectAccessViewSchema"
                 }
               ]
             }
@@ -4894,20 +5236,23 @@
         },
         "type": "object"
       },
+      "CommonItemInfoViewSchema": {
+        "properties": {
+          "origin_id": {
+            "type": "string",
+            "example": "1234567890"
+          },
+          "title": {
+            "type": "string",
+            "example": "My App"
+          }
+        },
+        "type": "object"
+      },
       "AppCommonInfoViewSchema": {
         "properties": {
           "app_info": {
-            "properties": {
-              "origin_id": {
-                "type": "string",
-                "example": "1234567890"
-              },
-              "title": {
-                "type": "string",
-                "example": "My App"
-              }
-            },
-            "type": "object"
+            "$ref": "#/components/schemas/CommonItemInfoViewSchema"
           }
         },
         "type": "object"
@@ -5502,6 +5847,19 @@
         },
         "type": "object"
       },
+      "PublicApiForceRecheckRankingViewSchema": {
+        "properties": {
+          "status": {
+            "description": "The re-check has been queued. Completion is reported per keyword through the webhook, if one was supplied.",
+            "type": "string",
+            "enum": [
+              "accepted"
+            ],
+            "example": "accepted"
+          }
+        },
+        "type": "object"
+      },
       "PublicApiKeywordPopularityHistoryDateViewSchema": {
         "properties": {
           "date": {
@@ -5556,21 +5914,16 @@
         "type": "object"
       },
       "PublicApiKeywordRankingPositionViewSchema": {
-        "type": "object",
-        "allOf": [
-          {
-            "properties": {
-              "position": {
-                "type": "integer",
-                "example": 1
-              }
-            },
-            "type": "object"
+        "properties": {
+          "position": {
+            "type": "integer",
+            "example": 1
           },
-          {
-            "$ref": "#/components/schemas/AppCommonInfoViewSchema"
+          "item": {
+            "$ref": "#/components/schemas/CommonItemInfoViewSchema"
           }
-        ]
+        },
+        "type": "object"
       },
       "PublicApiKeywordRankingViewSchema": {
         "properties": {
@@ -6139,6 +6492,44 @@
         },
         "type": "object"
       },
+      "PublicApiProjectAccessDeniedSchema": {
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Access to the project is denied"
+          }
+        },
+        "type": "object"
+      },
+      "ProjectAccessViewSchema": {
+        "properties": {
+          "access": {
+            "properties": {
+              "owner": {
+                "properties": {
+                  "email": {
+                    "description": "Describes the authenticated API user's access to a project (user_application):\nwho owns it and at what level the caller may use it.",
+                    "type": "string",
+                    "example": "owner@example.com"
+                  }
+                },
+                "type": "object"
+              },
+              "level": {
+                "type": "string",
+                "enum": [
+                  "read",
+                  "edit",
+                  "owner"
+                ],
+                "example": "owner"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
       "PublicApiProjectNotFoundSchema": {
         "properties": {
           "error": {
@@ -6350,137 +6741,6 @@
         },
         "type": "object"
       },
-      "TrackKeywordsRankingResultViewSchema": {
-        "properties": {
-          "task_info": {
-            "$ref": "#/components/schemas/TrackKeywordsRankingTaskInfoViewSchema"
-          },
-          "response_data": {
-            "properties": {
-              "keywords_result": {
-                "type": "object",
-                "additionalProperties": {
-                  "schema": "TrackKeywordsRankingResultView",
-                  "properties": {
-                    "datetime": {
-                      "type": "string",
-                      "format": "date-time",
-                      "example": "2024-06-13T12:00:00+00:00"
-                    },
-                    "positions": {
-                      "type": "array",
-                      "items": {
-                        "properties": {
-                          "position": {
-                            "type": "integer",
-                            "example": 1
-                          },
-                          "store_resource_id": {
-                            "type": "string",
-                            "example": "1234567890"
-                          }
-                        },
-                        "type": "object"
-                      }
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "type": "object"
-          }
-        },
-        "type": "object"
-      },
-      "TrackKeywordsRankingResultView": {
-        "properties": {
-          "datetime": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2024-06-13T12:00:00+00:00"
-          },
-          "positions": {
-            "type": "array",
-            "items": {
-              "properties": {
-                "position": {
-                  "type": "integer",
-                  "example": 1
-                },
-                "store_resource_id": {
-                  "type": "string",
-                  "example": "1234567890"
-                }
-              },
-              "type": "object"
-            }
-          }
-        },
-        "type": "object"
-      },
-      "TrackKeywordsRankingTaskInfoViewSchema": {
-        "properties": {
-          "task_info": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/StoreViewSchema"
-              },
-              {
-                "properties": {
-                  "id": {
-                    "type": "string",
-                    "example": "task-uuid"
-                  },
-                  "custom_data": {
-                    "description": "Arbitrary key/value data echoed back from the request.",
-                    "type": "object",
-                    "example": {
-                      "client_request_id": "abc-123",
-                      "campaign": "spring-2026"
-                    },
-                    "nullable": true,
-                    "additionalProperties": true
-                  },
-                  "country": {
-                    "properties": {
-                      "code": {
-                        "type": "string",
-                        "example": "US"
-                      }
-                    },
-                    "type": "object"
-                  },
-                  "status": {
-                    "type": "string",
-                    "example": "PENDING"
-                  },
-                  "keywords": {
-                    "properties": {
-                      "counts": {
-                        "properties": {
-                          "total": {
-                            "type": "integer",
-                            "example": 10
-                          },
-                          "paid": {
-                            "type": "integer",
-                            "example": 5
-                          }
-                        },
-                        "type": "object"
-                      }
-                    },
-                    "type": "object"
-                  }
-                },
-                "type": "object"
-              }
-            ]
-          }
-        },
-        "type": "object"
-      },
       "PublicApiAddedKeywordsViewSchema": {
         "properties": {
           "new_count": {
@@ -6508,6 +6768,16 @@
           "name": {
             "type": "string",
             "example": "My folder"
+          },
+          "settings": {
+            "properties": {
+              "cross_country": {
+                "description": "`true` — the folder spans every country of the project, `false` — its keywords are country-scoped.",
+                "type": "boolean",
+                "example": true
+              }
+            },
+            "type": "object"
           }
         },
         "type": "object"

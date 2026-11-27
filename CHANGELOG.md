@@ -1,8 +1,43 @@
 # Changelog
 
-All notable changes to the `asolytics-api` skill. Versions here are **skill** versions (`skills/asolytics-api/VERSION`), not API versions — the Asolytics Public API itself is still `1.0.0-alpha`.
+All notable changes to the `asolytics-api` skill. Versions here are **skill** versions (`skills/asolytics-api/VERSION`), not API versions — the Asolytics Public API itself is now `1.0.0-beta`.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.3.0] — 2026-11-27
+
+Synced against the API docs as of 2026-11-27 (API `1.0.0-alpha` → `1.0.0-beta`).
+
+### Added
+
+- **Store analytics** (needs a connected store account; `409` otherwise):
+  - `GET /v1/analytics/app-store/time-series` — App Store Connect impressions, product page views, downloads (first-time and redownloads), proceeds; by day, week or month; by country, source type, referring app or website. 10 tokens per call with data.
+  - `GET /v1/analytics/google-play/time-series` — Play Console store listing visitors, installers, conversion; daily series plus a period-over-period table in one call; by country, source, search term, listing, language, UTM. 10 tokens per call with data.
+  - `GET /v1/analytics/google-play/dimension-values` — valid Google Play breakdown and filter values. 1 token.
+- `GET /v1/applications/timeline` — day-by-day listing change history (texts, screenshots, icon, version, size, video). 1 token per (date, type) fact.
+- `GET /v1/applications/info` — app summary; with `country_code` also the rating and availability there. 15 / 20 tokens.
+- `GET /v1/applications/ratings` — rating and ratings count by day and country. 3 tokens per (day, country).
+- `GET /v1/competitors/finder` — competitor candidates, as in the dashboard. 20 tokens.
+- `GET /v1/projects/competitors-in-top` — which marked apps are in the store top for given keywords, and at which positions. 1 token per unique keyword, min 10.
+- `GET /v1/keywords/suggestions/live` — store search suggestions right now. 10 tokens if any suggestion comes back.
+- `GET /v1/keywords/suggestions/history` — collected search suggestions by day, up to 10 countries. 1 token per (country, day).
+- `GET /v1/metadata-keywords` — keywords from the metadata of the project app and its competitors. 1 token per started 10 returned.
+- `GET` / `PUT` / `DELETE /v1/recommended-keywords/autoapprove-settings` — read, save and stop auto-approve of recommended keywords. 1 / 10 / 10 tokens.
+- `POST /v1/projects` — add an app to projects (10 tokens); `POST /v1/projects/archive` — archive a project (1 token).
+
+### Changed
+
+- `POST /v1/competitors/mark` and `/unmark` accept `competitor_origin_ids` (up to 100) as an alternative to one `competitor_origin_id`; every requested app is billed 1 token, including `not_found` / `skipped`.
+- `GET /v1/applications/installs` and `/revenue` take `country_codes[]`.
+- `GET /v1/projects/list` returns `is_archived` and `integrations` (`app_store_analytics` / `google_play_analytics` / `incentive_traffic`: `connected` / `pending` / `error` with `error_reason` / `not_connected`).
+- `GET /v1/subscription/limits` with `project_id` also returns the project's competitor limits.
+- `POST /v1/tracking/folders` and `PATCH /v1/tracking/folders/{folder}` document `422` validation errors (`name` ≤ 32, `description` ≤ 1000 chars).
+- **Token prices:** `applications/metadata` and `applications/metadata/media` 10 → 5 per (app, locale); `keywords/ranking` 1 → 2 per (keyword, date); `keywords/popularity` 1 → 2 per (keyword, date), min 5 per keyword with history; `keywords/metrics` 5 for `popularity` / `max_popularity`, 1 for `impressions` / `difficulty` / `language` (was 1 for all); `applications/ranking/latest-by-keywords` 3 per started 30 keywords, min 15 (was 1 per 30, min 5).
+
+### Housekeeping
+
+- `scripts/sync_openapi.py` now resolves `$ref` parameters (the new analytics endpoints use shared components; the script crashed on them).
+- Regenerated `references/openapi.json` and `references/endpoints.md`; updated `SKILL.md`, `references/api-overview.md` and `README.md`; bumped everything to 1.3.0.
 
 ## [1.2.0] — 2026-08-04
 

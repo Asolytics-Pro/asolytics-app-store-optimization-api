@@ -18,10 +18,13 @@ This is mainly an **ASO research & intelligence API** — pull keyword and app d
 | **Installs & revenue estimates** | Monthly **estimated installs** and **revenue**, per app and per country. |
 | **Rankings & store charts** | An app's category and keyword **ranking history** (or the **latest position per keyword** in one call), plus full **top-500 store charts** by country, category, and device. |
 | **On-demand re-checks** | Force a **fresh rank scan** for up to 500 phrases at once, with an optional **webhook** per phrase when the scan lands. |
-| **Competitors** | The competitor set for any app. |
+| **App history & ratings** | App summary, **day-by-day listing change timeline** (texts, screenshots, icon, version, size, video), and **ratings history** by country. |
+| **Store analytics** | Your real **App Store Connect** and **Google Play Console** numbers — impressions, page views, downloads/installs, conversion, proceeds — by country, source, search term, referrer, UTM (needs a connected store account). |
+| **Search suggestions** | Store autocomplete **live right now** and its collected history, plus keywords mined from app and competitor **metadata**. |
+| **Competitors** | The competitor set for any app, **competitor candidates** like in the dashboard, and which competitors sit in the top for given keywords. |
 | **Lookups** | Reference data to build valid queries: countries, locales, devices, categories, and clusters. |
 
-It can also **manage your own Asolytics workspace** in one place — your projects (owned and **shared with you**, including **per-country keyword counts**), tracked keywords & folders, competitor marks, your **plan limits** (`total` vs `used`), and your remaining API **token balance** (the API is metered).
+It can also **manage your own Asolytics workspace** in one place — your projects (owned and **shared with you**, including **per-country keyword counts**), tracked keywords & folders, bulk competitor marks, recommended-keyword **auto-approve**, creating and archiving projects, your **plan limits** (`total` vs `used`), and your remaining API **token balance** (the API is metered).
 
 Full endpoint-by-endpoint reference: [`skills/asolytics-api/references/endpoints.md`](skills/asolytics-api/references/endpoints.md). What changed between releases: [`CHANGELOG.md`](CHANGELOG.md).
 
@@ -119,7 +122,7 @@ bash .claude/skills/asolytics-api/scripts/update.sh        # or .codex/skills/..
 
 ## Keeping the API reference fresh
 
-The Asolytics API is in alpha and can change. To refresh the bundled API snapshot (endpoint list & schemas) at any time:
+The Asolytics API is in beta and can change. To refresh the bundled API snapshot (endpoint list & schemas) at any time:
 
 ```bash
 python3 skills/asolytics-api/scripts/sync_openapi.py

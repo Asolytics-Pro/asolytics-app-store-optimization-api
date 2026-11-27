@@ -1,7 +1,7 @@
 ---
 name: asolytics-api
-version: 1.2.0
-description: Use the Asolytics Public API for ASO research and automation. Trigger this skill when the agent needs to query app metadata, availability, versions, installs, revenue, rankings, keyword metrics, live search results, forced ranking re-checks, recommended keywords, tracked keywords, tracking folders, competitors, projects (own and shared), per-country keyword counts, balance, subscription/plan limits, or store charts from Asolytics. Also use it when a user wants curl examples, lightweight integrations, or repeatable reporting workflows against the Asolytics API.
+version: 1.3.0
+description: Use the Asolytics Public API for ASO research and automation. Trigger this skill when the agent needs to query app metadata, app info, listing change timeline, ratings history, availability, versions, installs, revenue, rankings, real App Store Connect / Google Play Console analytics (impressions, page views, downloads, installs, conversion, proceeds), keyword metrics, live search results, live and historical search suggestions, metadata keywords, forced ranking re-checks, recommended keywords and their auto-approve, tracked keywords, tracking folders, competitors (finder, bulk mark, competitors in top), projects (own and shared; create and archive), per-country keyword counts, balance, subscription/plan limits, or store charts from Asolytics. Also use it when a user wants curl examples, lightweight integrations, or repeatable reporting workflows against the Asolytics API.
 homepage: https://github.com/Asolytics-Pro/asolytics-app-store-optimization-api
 ---
 
@@ -17,7 +17,7 @@ Prefer the bundled references over re-discovering the API from scratch, and refr
 1. Read [references/api-overview.md](references/api-overview.md) first for auth, base URL, and endpoint families.
 2. Read [references/endpoints.md](references/endpoints.md) when you need endpoint-level parameters or request body fields.
 3. Read [references/openapi.json](references/openapi.json) only when exact schema details or edge cases matter.
-4. Prefer small, cheap requests first because the API is alpha and some endpoints consume tokens.
+4. Prefer small, cheap requests first because the API is beta and some endpoints consume tokens.
 5. Use `GET /public-api/v1/balance` when token awareness matters before running a wide query.
 
 ## Auth
@@ -64,6 +64,10 @@ Use the Applications endpoints for:
 - version history
 - installs and revenue history
 - ranking history (full history, or the latest known position per keyword via `applications/ranking/latest-by-keywords`)
+- `applications/info` — one-call app summary; with `country_code` also the rating and availability there (15 / 20 tokens)
+- `applications/ratings` — rating and ratings count by day and country (3 tokens per (day, country))
+- `applications/timeline` — day-by-day history of listing changes: texts, screenshots, icon, version, size, video (1 token per (date, type) fact)
+- installs and revenue accept `country_codes[]` to filter countries
 
 Start with the narrowest possible app set because some metadata endpoints bill per returned pair.
 
@@ -75,6 +79,9 @@ Use the Keywords and Recommended Keywords endpoints for:
 - popularity history
 - latest keyword metrics
 - live search top 50
+- search suggestions (autocomplete): `keywords/suggestions/live` asks the store right now (10 tokens if anything comes back), `keywords/suggestions/history` returns what was already collected, day by day, for up to 10 countries
+- `metadata-keywords` — keywords found in the metadata of the project app and its competitors (1 token per started 10 returned)
+- auto-approve of recommended keywords — `GET` / `PUT` / `DELETE recommended-keywords/autoapprove-settings` (read 1 token, save or stop 10 tokens)
 - recommended keyword review — `recommended-keywords` is **paginated** (`page`/`per_page`, 100–1000); loop until `pagination.current_page == pagination.total_pages`, and narrow with `filters[recommended_keyword_state][]` (recommended/tracked/declined) or `filters[sources][]` (meta/competitors/suggestions/rankings/related)
 - forced ranking re-checks — `POST keywords/ranking/force-recheck` queues an on-demand re-scan of the store top for up to 500 phrases in one (store, country); it returns `{"status": "accepted"}` immediately and the fresh positions appear in `keywords/ranking` / `applications/ranking` a few minutes later
 
@@ -109,7 +116,9 @@ Fetch first, mutate second. For delete operations, resolve ids and current conte
 Use Competitors and Store Charts for:
 
 - listing current competitors
-- marking or unmarking a competitor
+- `competitors/finder` — competitor candidates, the same as in the dashboard (20 tokens per call)
+- marking or unmarking competitors — `competitors/mark` / `unmark` take `competitor_origin_id` or up to 100 `competitor_origin_ids`; **every** requested app is billed (1 token each), including `not_found` / `skipped` ones
+- `projects/competitors-in-top` — which marked apps sit in the store top for given keywords, and where (1 token per unique keyword, min 10)
 - retrieving top-500 charts by store, country, cluster, category, and device
 
 ### Project & Account Insight
@@ -118,9 +127,22 @@ Use Projects and Subscription for cheap, high-level dashboards:
 
 - `projects/list` returns projects the caller owns, projects **shared** with them, and — for enterprise team leads/owners — projects owned by members below them. Each project carries `access.owner.email` and `access.level` (`read` / `edit` / `owner`). Check `access.level` before proposing a write: a `read` project will reject tracking, folder, competitor, and decline calls.
 - `projects/countries-keywords-counts` — per-country tracked / recommended / ranking keyword counts plus their day-over-day `dynamic`, for one project. A cheap snapshot of project breadth; note it reflects the **previous day** (use the list endpoints for exact, current values).
-- `subscription/limits` — plan `total` vs `used` for keywords, apps, archived apps, and public API tokens. Pair with `GET /public-api/v1/balance` whenever quota or token headroom matters before a wide query.
+- `subscription/limits` — plan `total` vs `used` for keywords, apps, archived apps, and public API tokens; with `project_id` it also returns that project's competitor limits.
+- `POST projects` adds an app to projects (10 tokens; `409` if it already exists), `POST projects/archive` archives one (1 token). `projects/list` now carries `is_archived` and `integrations`. Pair with `GET /public-api/v1/balance` whenever quota or token headroom matters before a wide query.
+
+### Store Analytics (App Store Connect / Google Play Console)
+
+Real first-party numbers, available only when the project's store account is connected. Check `integrations` in `projects/list` first: each integration is `connected` / `pending` / `error` (with `error_reason`) / `not_connected`. Anything but `connected` makes the analytics calls answer `409`.
+
+- `analytics/app-store/time-series` — impressions, product page views, downloads (first-time and redownloads), proceeds; by day, week, or month; split by country, source type, referring app or website.
+- `analytics/google-play/time-series` — store listing visitors, installers, conversion; one call returns daily series plus a table with change vs the previous period; split by country, traffic source, search term, listing, language, UTM.
+- `analytics/google-play/dimension-values` — valid values for Google Play breakdowns and filters (1 token).
+
+Time-series calls cost 10 tokens when they return data (empty and cached answers included); 403/404/409/429/503 are free; at least 10 tokens must be on the balance (otherwise 402).
 
 ## Guardrails
+
+- Token prices changed in 1.0.0-beta: `applications/metadata` and `metadata/media` now 5 per (app, locale); `keywords/popularity` and `keywords/ranking` 2 per (keyword, date) (popularity: min 5 per keyword with history); `keywords/metrics` 5 for `popularity`/`max_popularity`, 1 for the rest; `applications/ranking/latest-by-keywords` 3 per started 30 keywords, min 15. Re-read the `Costs` line in `endpoints.md` before a wide query.
 
 - Treat the API as unstable unless the current OpenAPI spec confirms the shape you expect.
 - A `403` from any project-scoped endpoint means the token has no access to that `project_id` — re-read `projects/list` and its `access.level` instead of retrying.

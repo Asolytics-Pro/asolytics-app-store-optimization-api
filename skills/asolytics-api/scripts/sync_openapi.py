@@ -70,6 +70,15 @@ def format_schema(schema: dict) -> str:
     return schema.get("type", "object")
 
 
+def resolve_ref(spec: dict, obj: dict) -> dict:
+    ref = obj.get("$ref")
+    if not ref or not ref.startswith("#/"):
+        return obj
+    for key in ref[2:].split("/"):
+        spec = spec[key]
+    return spec
+
+
 def render_param(param: dict) -> str:
     schema = param.get("schema", {})
     bits = [f"`{param['name']}`", f"in `{param['in']}`", format_schema(schema)]
@@ -138,7 +147,7 @@ def build_markdown(spec: dict) -> str:
             params = operation.get("parameters", [])
             if params:
                 lines.extend(["- Parameters:", ""])
-                lines.extend([render_param(param) for param in params])
+                lines.extend([render_param(resolve_ref(spec, param)) for param in params])
 
             request_body = operation.get("requestBody")
             if request_body:

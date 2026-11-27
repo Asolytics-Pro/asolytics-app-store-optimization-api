@@ -17,7 +17,7 @@
 
 ## Stability Notes
 
-- The docs describe the API as `1.0.0-alpha`.
+- The docs describe the API as `1.0.0-beta`.
 - Endpoint shapes, parameters, response formats, and token costs may change.
 - Re-check the bundled OpenAPI snapshot before relying on exact field names.
 
@@ -43,6 +43,10 @@ curl -sS \
 - Revenue history
 - Ranking history
 - Latest ranking position per keyword (`applications/ranking/latest-by-keywords`)
+- App info (`applications/info`), with `country_code` also rating and availability there
+- Ratings history by day and country (`applications/ratings`)
+- Listing change timeline (`applications/timeline`)
+- Installs and revenue filterable by `country_codes[]`
 
 ### Common Catalogs
 
@@ -60,6 +64,9 @@ Use these first when the user does not already know valid store, locale, country
 - Popularity history
 - Latest metrics
 - Live search top 50
+- Search suggestions — live (`keywords/suggestions/live`) and collected history (`keywords/suggestions/history`)
+- Metadata keywords of the app and competitors (`metadata-keywords`)
+- Recommended keywords auto-approve settings (`GET`/`PUT`/`DELETE recommended-keywords/autoapprove-settings`)
 - Forced ranking re-check (`keywords/ranking/force-recheck`) — on-demand re-scan of up to 500 phrases, optional per-phrase webhook; 15 tokens per unique phrase, +1 with a webhook, +1 more with `include_positions`
 - Recommended keywords (paginated; filter by state and source)
 - Decline and undecline actions
@@ -73,17 +80,28 @@ Use these first when the user does not already know valid store, locale, country
 ### Competitors
 
 - List competitors
-- Mark competitor
-- Unmark competitor
+- Competitor finder (`competitors/finder`)
+- Mark / unmark competitors — one or up to 100 per call
+- Competitors in the top of keywords (`projects/competitors-in-top`)
+
+### Analytics
+
+Needs a connected store account (see `integrations` in `projects/list`; otherwise `409`).
+
+- App Store Connect time series (`analytics/app-store/time-series`)
+- Google Play Console time series + period-over-period table (`analytics/google-play/time-series`)
+- Google Play breakdown/filter values (`analytics/google-play/dimension-values`)
 
 ### Subscription
 
-- Plan limits — `total` vs `used` for keywords, apps, archived apps, and public API tokens (`subscription/limits`)
+- Plan limits — `total` vs `used` for keywords, apps, archived apps, and public API tokens (`subscription/limits`); with `project_id` also the project's competitor limits
 
 ### Other
 
 - Balance
 - Projects list — owned, shared, and (for enterprise leads) team members' projects, each with `access.owner.email` and `access.level` (`read`/`edit`/`owner`)
+- Projects list also returns `is_archived` and `integrations` (`app_store_analytics` / `google_play_analytics` / `incentive_traffic`: `connected`/`pending`/`error`/`not_connected`)
+- Create project (`POST projects`) and archive project (`POST projects/archive`)
 - Per-country keyword counters (`projects/countries-keywords-counts`)
 - Store charts
 
